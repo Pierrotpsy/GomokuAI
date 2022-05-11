@@ -20,9 +20,9 @@ def play(game, player1, player2):
             timeO = time.time() - startTimeO
             
         
-        xstring = "Score for " + player1.letter +" is " + str(game.boardScore(player1.letter)) 
+        xstring = "Score for " + player1.letter +" is " + str(game.boardFitness(player1.letter)[0]) 
         xstring += "" if letter != 'x' else " Time : " + str(timeX)
-        ostring = "Score for " + player2.letter +" is " + str(game.boardScore(player2.letter))
+        ostring = "Score for " + player2.letter +" is " + str(game.boardFitness(player2.letter)[0])
         ostring += "" if letter != 'o' else " Time : " + str(timeO)
         print(xstring)
         print(ostring)
@@ -33,12 +33,11 @@ def play(game, player1, player2):
         letter = 'x' if letter == 'o' else 'o'
 
 game = Game()
-playerx = AI('x')
-playero = Manual('o')
+playerx = AI('x', longPro=True)
+playero = AI('o', longPro=True)
+#playero = Manual('o', longPro=True)
     
 play(game, playerx, playero)
-#print(game.getDirection((7,7), (6,6)))
-#add winner check
-#add longpro variant to Manual
-#add best move option if timer > 5 seconds
+#print(game.isInSquare((4,4)))
+
 #add safeties to minimax for winner and tie(full board)

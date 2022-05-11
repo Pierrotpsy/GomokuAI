@@ -3,7 +3,7 @@ import operator
 
 
 LINES = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9, 'K':10, 'L':11, 'M':12, 'N':13, 'O':14}
-MOVE_VALUES = {"counter_2": 5, "open_2": 10, "counter_3": 25, "open_3": 100, "counter_4": 1000, "open_4": 10000, "win": 100000}
+MOVE_VALUES = {"counter_2": 1, "open_2": 2, "counter_3": 5, "open_3": 20, "counter_4": 200, "open_4": 2000, "win": 20000}
 
 
 class Game():
@@ -32,7 +32,7 @@ class Game():
         if(self.board[move[0]][move[1]] == '-'):
             self.moves[char].append(move)
             self.board[move[0]][move[1]] = char
-            if self.boardScore(char) >= MOVE_VALUES["win"]:
+            if self.boardFitness(char)[0] >= MOVE_VALUES["win"]:
                 self.winner = char
             return True
         else:
@@ -59,8 +59,8 @@ class Game():
     def getNumPosLeft(self):
         return 225 - len(self.moves['x']) - len(self.moves['o'])
     
-    def isInSquare(self, cell, center = (7,7), radius = (3)):
-        if((cell[0] > center[0] + radius) or (cell[0] < center[0] - radius)) and ((cell[1] > center[1] + radius) or (cell[1] < center[1] - radius)):
+    def isInSquare(self, cell, center = (7,7), radius = 3):
+        if((cell[0] > center[0] + radius) or (cell[0] < center[0] - radius)) or ((cell[1] > center[1] + radius) or (cell[1] < center[1] - radius)):
             return False
         return True
     
@@ -72,7 +72,107 @@ class Game():
     
     def isOutOfRange(self, cell):
         return not(cell[0] >= 0 and cell[0] < 15 and cell[1] >= 0 and cell[1] < 15)
-  
+    
+    def autoBlock(self, player):
+        playerMoves_temp = self.moves[player].copy()
+        opponentMoves_temp = self.moves['x' if player == 'o' else 'o'].copy()
+        checkedMoves = []
+
+        for move in playerMoves_temp:
+            neighbours = self.getNeighbours(move)
+            checkedNeighbours = []
+
+            for neighbour in neighbours:
+                if neighbour in checkedNeighbours:
+                    continue
+            
+                if neighbour in playerMoves_temp:
+                    direction = self.getDirection(move, neighbour)
+                    length = 1
+                    isHeadBlocked = False
+                    isTailBlocked = False
+                    isHeadBroken = False
+                    isTailBroken = False
+                    
+                    stop = False
+
+                    head = tuple(map(operator.add, move, direction))
+
+                    if head in checkedMoves:
+                        stop = True
+
+                    if self.isOutOfRange(head) or head in opponentMoves_temp:
+                        isHeadBlocked = True
+                    elif head not in playerMoves_temp and not isHeadBroken:
+                        isHeadBroken = True
+                        head = tuple(map(operator.add, head, direction))
+                        if head in checkedMoves:
+                            stop = True
+                    
+                    while head in playerMoves_temp and not stop:
+                        length += 1
+                        checkedNeighbours.append(head)
+                    
+                        head = tuple(map(operator.add, head, direction))
+                        if head in checkedMoves:
+                            stop = True
+                            break
+                        if self.isOutOfRange(head) or head in opponentMoves_temp:
+                            isHeadBlocked = True
+                            break
+                        if head not in playerMoves_temp and not isHeadBroken:
+                            isHeadBroken = True
+                            head = tuple(map(operator.add, head, direction))
+                            if head in checkedMoves:
+                                stop = True
+                                break
+
+                    tail = tuple(map(operator.sub, move, direction))
+
+                    if tail in checkedMoves:
+                        stop = True
+
+                    if self.isOutOfRange(tail) or tail in opponentMoves_temp:
+                        isTailBlocked = True
+                    elif tail not in playerMoves_temp and not isTailBroken:
+                        isTailBroken = True
+                        tail = tuple(map(operator.sub, tail, direction))
+                    if tail in checkedMoves:
+                        stop = True
+                        break
+                    
+                    while tail in playerMoves_temp and not stop:
+                        length += 1
+                        checkedNeighbours.append(tail)
+                    
+                        tail = tuple(map(operator.sub, tail, direction))
+                        if tail in checkedMoves:
+                            stop = True
+                            break
+                        if self.isOutOfRange(tail) or tail in opponentMoves_temp:
+                            isTailBlocked = True
+                            break
+                        if tail not in playerMoves_temp and not isTailBroken:
+                            isTailBroken = True
+                            tail = tuple(map(operator.sub, tail, direction))
+                            if tail in checkedMoves:
+                                stop = True
+                                break
+
+                    if(stop):
+                        continue
+                    
+                    if length == 4 and (not isTailBlocked and isHeadBlocked) :
+                        return tuple(map(operator.add, tail, direction)), direction, 
+                    elif length == 4 and (isTailBlocked and not isHeadBlocked):
+                        return tuple(map(operator.sub, head, direction)), direction
+
+                    checkedNeighbours.append(neighbour)
+                    
+            checkedMoves.append(move)
+        
+        return (-1,-1)
+        
     def evaluate(self, player):
         directions = [(-1, -1),(-1, 0), (-1, 1), (0, -1)]
         currentRow = 1   
@@ -130,23 +230,7 @@ class Game():
                     moves.append(tail)
         return moves
     
-    # def getPotentialMoves(self):
-    #     potentialMoves = []
-    #     directions = [ (2, 0), (2, -2),(-1, 0), (0, -1), (-1,-1), (0, -2), (-2, -2), (1,-1)]
-        
-    #     allMoves = self.moves['x'] + self.moves['o']
-    #     for move in allMoves:
-    #         for vector in directions:
-    #             head = (move[0] + vector[0], move[1] + vector[1])
-    #             tail = (move[0] - vector[0], move[1] - vector[1])
-    #             if not self.isOutOfRange(tail) and self.board[tail[0]][tail[1]] == '-':
-    #                 potentialMoves.append(tail)
-    #             if not self.isOutOfRange(head) and self.board[head[0]][head[1]] == '-':
-    #                 potentialMoves.append(head)
-        
-    #     return potentialMoves
-    
-    def boardScore(self, player):
+    def boardFitness(self, player):
       
         COUNTER = {"counter_2": 0, "open_2": 0, "counter_3": 0, "open_3": 0, "counter_4": 0, "open_4": 0, "win": 0}
         totalScore = 0
@@ -256,12 +340,12 @@ class Game():
                     checkedNeighbours.append(neighbour)
                     
             checkedMoves.append(move)
-
+        
         for key in MOVE_VALUES:
             score = MOVE_VALUES[key] * COUNTER[key]
             totalScore = totalScore + score
 
-        return totalScore
+        return (totalScore, COUNTER)
     
 
 
