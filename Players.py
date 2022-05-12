@@ -44,7 +44,9 @@ class AI():
         self.longPro = longPro
         self.best = None
         self.overTime = False
-          
+        self.shortGame = True
+        self.depth = 3
+        
     def stopLoop(self):
         self.overTime = True
         
@@ -58,29 +60,64 @@ class AI():
             while(game.isInSquare((x,y)) or not game.playMove((x,y), self.letter)):
                 x = randint(0,14)
                 y = randint(0,14)
+                
+        elif(game.boardFitness(self.letter)[1]["open_4"] >= 1 or game.boardFitness(self.letter)[1]["counter_4"] >= 1):
+            print("autowin")
+            move, direction = game.autoWin(self.letter)
+            print(move)
+            if(game.playMove(move, self.letter)):
+                return move
+            else:
+                print("autowin error, trying to correct")
+                newMoveHead = tuple(map(operator.add, move, direction))
+                if(game.playMove(newMoveHead, self.letter)):
+                    return newMoveHead
+                newMoveTail = tuple(map(operator.sub, move, direction))
+                if(game.playMove(newMoveTail, self.letter)):
+                    return newMoveTail
+                newMove = tuple(map(operator.add, newMoveHead, direction))
+                if(game.playMove(newMove, self.letter)):
+                    return newMove
+                newMove = tuple(map(operator.sub, newMoveTail, direction))
+                if(game.playMove(newMove, self.letter)):
+                    return newMove
+                print("failed to correct error")
+                
         elif(game.boardFitness('x' if self.letter == 'o' else 'o')[1]["counter_4"] >= 1):
             print("autoblock")
             move, direction = game.autoBlock('x' if self.letter == 'o' else 'o')
+            print(move)
             if(game.playMove(move, self.letter)):
                 return move
             else:
                 print("autoblock error, trying to correct")
-                alternate = False
-                newMove = tuple(map(operator.add, move, direction))
+                newMoveHead = tuple(map(operator.add, move, direction))
+                if(game.playMove(newMoveHead, self.letter)):
+                    return newMoveHead
+                newMoveTail = tuple(map(operator.sub, move, direction))
+                if(game.playMove(newMoveTail, self.letter)):
+                    return newMoveTail
+                newMove = tuple(map(operator.add, newMoveHead, direction))
                 if(game.playMove(newMove, self.letter)):
                     return newMove
-                newMove = tuple(map(operator.sub, move, direction))
+                newMove = tuple(map(operator.sub, newMoveTail, direction))
                 if(game.playMove(newMove, self.letter)):
                     return newMove
                 print("failed to correct error")
+                
         else:
             self.overTime = False
-            depth = 2
             t = Timer(4.95, self.stopLoop)
             t.start()
-            check = self.minimax(game, depth, -inf, inf, True)
+            if(not self.shortGame):
+                self.depth = self.depth - 1 if self.depth > 1 else 1
+                self.shortGame = True
+                
+            check = self.minimax(game, self.depth, -inf, inf, True)
             if self.overTime:
                 check = self.best
+                self.shortGame = False
+                
                 #print("hey" + check)
             if(game.playMove(check["coords"], self.letter)):
                 if self.overTime == False:
@@ -113,7 +150,7 @@ class AI():
         if(self.overTime):
             return
         
-        for pos in game.getNeighbours(potentialMoves = True):
+        for pos in game.getNeighbours(potentialMoves = True, distance = 1):
             game.playMove(pos, player)
             check = self.minimax(game, depth-1, alpha, beta, not isMax)
             

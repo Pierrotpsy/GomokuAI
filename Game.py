@@ -3,7 +3,7 @@ import operator
 
 
 LINES = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9, 'K':10, 'L':11, 'M':12, 'N':13, 'O':14}
-MOVE_VALUES = {"counter_2": 1, "open_2": 2, "counter_3": 5, "open_3": 20, "counter_4": 200, "open_4": 2000, "win": 20000}
+MOVE_VALUES = {"counter_2": 1, "open_2": 2, "counter_3": 5, "open_3": 100, "counter_4": 500, "open_4": 2000, "win": 1000000}
 
 
 class Game():
@@ -16,16 +16,27 @@ class Game():
         board = [['-' for _ in range(15)] for _ in range(15)]
         return board
     
-    def showBoard(self):
-        for i in range(15):
-            nums = str(15-i) 
-            nums  = nums.rjust(3)
-            print(nums + '| ' + ' | '.join(self.board[i]) + ' |')
-        
-        s = "  "
-        for i in range(15):
-            s += (" | " + list(LINES.keys())[i])
-        s += " |"
+    def showBoard(self, falsePositioning = False):
+        if falsePositioning:
+            for i in range(15):
+                print(list(LINES.keys())[i] + '| ' + ' | '.join(self.board[i]) + ' |')
+            
+            s = ""
+            for i in range(15):
+                nums = str(i+1)
+                nums  = nums.rjust(2)
+                s += (" |" + nums)
+            s += " |"
+        else:
+            for i in range(15):
+                nums = str(15-i) 
+                nums  = nums.rjust(3)
+                print(nums + '| ' + ' | '.join(self.board[i]) + ' |')
+            
+            s = "  "
+            for i in range(15):
+                s += (" | " + list(LINES.keys())[i])
+            s += " |"
         print(s)
         
     def playMove(self, move, char):
@@ -162,10 +173,41 @@ class Game():
                     if(stop):
                         continue
                     
-                    if length == 4 and (not isTailBlocked and isHeadBlocked) :
-                        return tuple(map(operator.add, tail, direction)), direction, 
-                    elif length == 4 and (isTailBlocked and not isHeadBlocked):
-                        return tuple(map(operator.sub, head, direction)), direction
+                    if(length ==4):
+                        print(move, head, tail)
+                    
+                    if(length == 4 and isHeadBroken and not isHeadBlocked):
+                        newMove = tuple(map(operator.sub, head, direction))
+                        if self.board[newMove[0]][newMove[1]] == '-' :
+                            return newMove, direction
+                    if(length == 4 and isTailBroken and not isTailBlocked):
+                        newMove = tuple(map(operator.add, tail,direction))
+                        if self.board[newMove[0]][newMove[1]] == '-' :
+                            return newMove, direction
+                    
+                    newMoveTail = tuple(map(operator.add, tail, direction))
+                    if length == 4 and self.board[newMoveTail[0]][newMoveTail[1]] == '-' :
+                        return newMoveTail, direction 
+
+                    newMoveHead = tuple(map(operator.sub, head, direction))
+                    if length == 4 and self.board[newMoveHead[0]][newMoveHead[1]] == '-':
+                        return newMoveHead, direction
+
+                    newMoveTail = tuple(map(operator.add, newMoveTail, direction))
+                    if length == 4 and  self.board[newMoveTail[0]][newMoveTail[1]] == '-' :
+                        return newMoveTail, direction
+                        
+                    newMoveHead = tuple(map(operator.sub, newMoveHead, direction))
+                    if length == 4 and  self.board[newMoveHead[0]][newMoveHead[1]] == '-':
+                        return newMoveHead, direction
+                    
+                    newMove = tuple(map(operator.sub, newMoveHead, direction))
+                    if length == 4 and  self.board[newMove[0]][newMove[1]] == '-':
+                        return newMove, direction
+                    
+                    newMove = tuple(map(operator.add, newMoveTail, direction))
+                    if length == 4 and  self.board[newMove[0]][newMove[1]] == '-' :
+                        return newMove, direction
 
                     checkedNeighbours.append(neighbour)
                     
@@ -173,6 +215,135 @@ class Game():
         
         return (-1,-1)
         
+    def autoWin(self, player):
+        playerMoves_temp = self.moves[player].copy()
+        opponentMoves_temp = self.moves['x' if player == 'o' else 'o'].copy()
+        checkedMoves = []
+
+        for move in playerMoves_temp:
+            neighbours = self.getNeighbours(move)
+            checkedNeighbours = []
+
+            for neighbour in neighbours:
+                if neighbour in checkedNeighbours:
+                    continue
+            
+                if neighbour in playerMoves_temp:
+                    direction = self.getDirection(move, neighbour)
+                    length = 1
+                    isHeadBlocked = False
+                    isTailBlocked = False
+                    isHeadBroken = False
+                    isTailBroken = False
+                    
+                    stop = False
+
+                    head = tuple(map(operator.add, move, direction))
+
+                    if head in checkedMoves:
+                        stop = True
+
+                    if self.isOutOfRange(head) or head in opponentMoves_temp:
+                        isHeadBlocked = True
+                    elif head not in playerMoves_temp and not isHeadBroken:
+                        isHeadBroken = True
+                        head = tuple(map(operator.add, head, direction))
+                        if head in checkedMoves:
+                            stop = True
+                    
+                    while head in playerMoves_temp and not stop:
+                        length += 1
+                        checkedNeighbours.append(head)
+                    
+                        head = tuple(map(operator.add, head, direction))
+                        if head in checkedMoves:
+                            stop = True
+                            break
+                        if self.isOutOfRange(head) or head in opponentMoves_temp:
+                            isHeadBlocked = True
+                            break
+                        if head not in playerMoves_temp and not isHeadBroken:
+                            isHeadBroken = True
+                            head = tuple(map(operator.add, head, direction))
+                            if head in checkedMoves:
+                                stop = True
+                                break
+
+                    tail = tuple(map(operator.sub, move, direction))
+
+                    if tail in checkedMoves:
+                        stop = True
+
+                    if self.isOutOfRange(tail) or tail in opponentMoves_temp:
+                        isTailBlocked = True
+                    elif tail not in playerMoves_temp and not isTailBroken:
+                        isTailBroken = True
+                        tail = tuple(map(operator.sub, tail, direction))
+                    if tail in checkedMoves:
+                        stop = True
+                        break
+                    
+                    while tail in playerMoves_temp and not stop:
+                        length += 1
+                        checkedNeighbours.append(tail)
+                    
+                        tail = tuple(map(operator.sub, tail, direction))
+                        if tail in checkedMoves:
+                            stop = True
+                            break
+                        if self.isOutOfRange(tail) or tail in opponentMoves_temp:
+                            isTailBlocked = True
+                            break
+                        if tail not in playerMoves_temp and not isTailBroken:
+                            isTailBroken = True
+                            tail = tuple(map(operator.sub, tail, direction))
+                            if tail in checkedMoves:
+                                stop = True
+                                break
+
+                    if(stop):
+                        continue
+                    
+                    if(length ==4):
+                        print(move, head, tail)
+                        
+                    if length == 4 and (not isTailBlocked and isTailBroken) :
+                        return tuple(map(operator.add, tail, direction)), direction
+                    
+                    if length == 4 and (not isHeadBlocked and isHeadBroken) :
+                        return tuple(map(operator.sub, head, direction)), direction
+                    
+                    newMoveTail = tuple(map(operator.add, tail, direction))
+                    if length == 4 and self.board[newMoveTail[0]][newMoveTail[1]] == '-' :
+                        return newMoveTail, direction 
+
+                    newMoveHead = tuple(map(operator.sub, head, direction))
+                    if length == 4 and self.board[newMoveHead[0]][newMoveHead[1]] == '-':
+                        return newMoveHead, direction
+
+                    newMoveTail = tuple(map(operator.add, newMoveTail, direction))
+                    if length == 4 and  self.board[newMoveTail[0]][newMoveTail[1]] == '-' :
+                        return newMoveTail, direction
+                        
+                    newMoveHead = tuple(map(operator.sub, newMoveHead, direction))
+                    if length == 4 and  self.board[newMoveHead[0]][newMoveHead[1]] == '-':
+                        return newMoveHead, direction
+                    
+                    newMove = tuple(map(operator.sub, newMoveHead, direction))
+                    if length == 4 and  self.board[newMove[0]][newMove[1]] == '-':
+                        return newMove, direction
+                    
+                    newMove = tuple(map(operator.add, newMoveTail, direction))
+                    if length == 4 and  self.board[newMove[0]][newMove[1]] == '-' :
+                        return newMove, direction
+                    
+                    
+                    
+                    
+            checkedMoves.append(move)
+        
+        return (-1,-1)
+    
     def evaluate(self, player):
         directions = [(-1, -1),(-1, 0), (-1, 1), (0, -1)]
         currentRow = 1   
@@ -206,10 +377,11 @@ class Game():
 
         return player_win
     
-    def getNeighbours(self, cell = None, potentialMoves = False):
+    def getNeighbours(self, cell = None, potentialMoves = False, distance = 2):
         moves = []
-        
-        directions = [(1,-1), (-2, 0),(-1, 0), (0, -1), (-1,-1), (2, -2), (0, -2), (-2, -2)]
+        if(distance != 2 and distance != 1):
+            distance = 1
+        directions = [(1,-1), (-2, 0),(-1, 0), (0, -1), (-1,-1), (2, -2), (0, -2), (-2, -2)] if distance == 2 else [(-1, -1),(-1, 0), (-1, 1), (0, -1)]
         
         if(potentialMoves):
             allMoves = self.moves['x'] + self.moves['o']

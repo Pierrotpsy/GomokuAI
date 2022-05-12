@@ -2,8 +2,8 @@ from Game import Game
 from Players import Manual, AI
 import time
 
-def play(game, player1, player2):
-    game.showBoard()
+def play(game, player1, player2, falsePositioning = False):
+    game.showBoard(falsePositioning)
     
     letter = 'x'
     
@@ -27,7 +27,7 @@ def play(game, player1, player2):
         print(xstring)
         print(ostring)
         
-        game.showBoard()
+        game.showBoard(falsePositioning)
         
         print(game.moves)
         letter = 'x' if letter == 'o' else 'o'
@@ -37,7 +37,7 @@ playerx = AI('x', longPro=True)
 playero = AI('o', longPro=True)
 #playero = Manual('o', longPro=True)
     
-play(game, playerx, playero)
+play(game, playerx, playero, falsePositioning = False)
 #print(game.isInSquare((4,4)))
 #try getpotentialmoves in 1 radius
 #test counter_4 counter
