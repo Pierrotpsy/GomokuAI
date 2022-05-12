@@ -23,4 +23,8 @@ Nous avons également implémenté un module nommé Players qui est composé de 
 
 - fonction boardFitness : Enfin, nous avons évolués sur notre façon d’attribuer des scores à des alignements de pions ‘open’ et ‘counter’ car nous avons réalisé que parfois, l’IA ne calculait pas forcément le meilleur coup. Nous avons donc mis par exemple une très grande différence de score entre counter_4 et open_4 car counter_4 peut être facilement bloqué par l’adversaire alors qu’un open_4 équivaut à une “quasi”-victoire car même si l’adversaire peut bloquer un côté, l’IA pourra jouer sur l’autre côté et gagner. 
 
-## 
+## Points d'amélioration
+
+- Ajouter plus de situations caractéristiques pour caractériser le plateau de jeu et plus précisément l'analyser.
+- Mettre en place une quantification des coups joués pour accélérer le minimax
+-  
