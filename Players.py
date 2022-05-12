@@ -64,7 +64,7 @@ class AI():
             if(game.playMove(move, self.letter)):
                 return move
             else:
-                print("autobloc error, trying to correct")
+                print("autoblock error, trying to correct")
                 alternate = False
                 newMove = tuple(map(operator.add, move, direction))
                 if(game.playMove(newMove, self.letter)):

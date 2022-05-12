@@ -39,5 +39,5 @@ playero = AI('o', longPro=True)
     
 play(game, playerx, playero)
 #print(game.isInSquare((4,4)))
-
-#add safeties to minimax for winner and tie(full board)
+#try getpotentialmoves in 1 radius
+#test counter_4 counter
